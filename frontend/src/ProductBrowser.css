@@ -1,0 +1,341 @@
+﻿/* ── Product Browser ───────────────────────────────── */
+.product-browser {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ▸ Header ─────────────────────────────────────────── */
+.pb-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.pb-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* ▸ Controls ───────────────────────────────────────── */
+.pb-controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.pb-search {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  outline: none;
+  transition: all var(--transition-normal);
+}
+
+.pb-search:focus {
+  border-color: var(--sidebar-active);
+  box-shadow: 0 0 0 3px rgba(15,52,96,0.1);
+}
+
+.pb-search::placeholder {
+  color: #aaa;
+}
+
+.pb-cat-select {
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  cursor: pointer;
+  min-width: 150px;
+  transition: border-color var(--transition-fast);
+}
+
+.pb-cat-select:focus {
+  outline: none;
+  border-color: var(--sidebar-active);
+  box-shadow: 0 0 0 3px rgba(15,52,96,0.1);
+}
+
+/* ▸ States ─────────────────────────────────────────── */
+.pb-loading,
+.pb-error,
+.pb-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  gap: 16px;
+  color: var(--text-secondary);
+}
+
+.pb-retry-btn {
+  background: var(--sidebar-active);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 22px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.pb-retry-btn:hover {
+  background: #1a4a8a;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(15,52,96,0.3);
+}
+
+/* ▸ Product Grid ───────────────────────────────────── */
+.pb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+/* ▸ Product Card ───────────────────────────────────── */
+.pb-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: flex;
+  flex-direction: column;
+}
+
+.pb-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px);
+  border-color: transparent;
+}
+
+.pb-card-img-wrap {
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(135deg, #fafafa 0%, #f0f2f5 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.pb-card-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: transform var(--transition-slow);
+}
+
+.pb-card:hover .pb-card-img {
+  transform: scale(1.08);
+}
+
+.pb-card-body {
+  padding: 18px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pb-card-cat {
+  font-size: 11px;
+  color: var(--sidebar-active);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pb-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pb-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.pb-card-price {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: "Cascadia Code", monospace;
+}
+
+.pb-card-rating {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ▸ Modal ──────────────────────────────────────────── */
+.pb-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.pb-modal {
+  background: var(--card-bg);
+  border-radius: 16px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.pb-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  background: rgba(0,0,0,0.04);
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  z-index: 1;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  line-height: 1;
+}
+
+.pb-modal-close:hover {
+  background: rgba(0,0,0,0.08);
+  color: var(--text-primary);
+}
+
+.pb-modal-content {
+  display: flex;
+  gap: 28px;
+  padding: 36px;
+}
+
+.pb-modal-img-wrap {
+  flex: 0 0 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #fafafa, #f0f2f5);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.pb-modal-img {
+  max-width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+}
+
+.pb-modal-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pb-modal-cat {
+  font-size: 12px;
+  color: var(--sidebar-active);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pb-modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.pb-modal-price {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: "Cascadia Code", monospace;
+}
+
+.pb-modal-rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pb-stars {
+  color: #f59e0b;
+  font-size: 18px;
+  letter-spacing: 2px;
+}
+
+.pb-rating-text {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.pb-review-count {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.pb-modal-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin: 8px 0 0;
+}
+
+@media (max-width: 640px) {
+  .pb-modal-content { flex-direction: column; }
+  .pb-modal-img-wrap { flex: none; }
+}

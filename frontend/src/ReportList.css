@@ -1,0 +1,344 @@
+﻿/* ── Report List & Detail ──────────────────────────── */
+.report-list-page,
+.report-detail-page {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* ▸ Header ─────────────────────────────────────────── */
+.report-list-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 22px;
+}
+
+/* ▸ States ─────────────────────────────────────────── */
+.report-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  gap: 16px;
+  color: var(--text-secondary);
+}
+
+.report-error {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.report-error p {
+  margin-bottom: 16px;
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.report-retry-btn,
+.report-back-btn {
+  background: var(--sidebar-active);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 22px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.report-retry-btn:hover,
+.report-back-btn:hover {
+  background: #1a4a8a;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(15,52,96,0.3);
+}
+
+.report-empty {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-secondary);
+}
+
+.report-empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.report-empty p {
+  font-size: 15px;
+}
+
+/* ▸ Table ──────────────────────────────────────────── */
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.report-table th {
+  background: #f8f9fa;
+  padding: 14px 18px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.report-table td {
+  padding: 14px 18px;
+  font-size: 13px;
+  border-bottom: 1px solid #f0f0f0;
+  color: var(--text-primary);
+}
+
+.report-table tr:last-child td {
+  border-bottom: none;
+}
+
+.report-row {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.report-row:hover {
+  background: #f0f4ff;
+}
+
+.col-id {
+  width: 60px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-family: "Cascadia Code", monospace;
+  font-size: 12px;
+}
+
+.col-title {
+  min-width: 180px;
+}
+
+.report-row-title {
+  font-weight: 600;
+  color: var(--sidebar-active);
+  transition: color var(--transition-fast);
+}
+
+.report-row:hover .report-row-title {
+  color: var(--accent);
+}
+
+.col-summary {
+  max-width: 300px;
+}
+
+.report-row-summary {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.col-date {
+  width: 160px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* ▸ Pagination ─────────────────────────────────────── */
+.report-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px 0;
+}
+
+.report-page-btn {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+}
+
+.report-page-btn:hover:not(:disabled) {
+  border-color: var(--sidebar-active);
+  color: var(--sidebar-active);
+  background: #f0f4ff;
+}
+
+.report-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.report-page-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-family: "Cascadia Code", monospace;
+}
+
+/* ▸ Detail ─────────────────────────────────────────── */
+.report-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.report-detail-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.report-detail-meta {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.report-meta-row {
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: flex;
+  gap: 6px;
+}
+
+.report-meta-label {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.report-detail-summary {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 22px;
+  margin-bottom: 22px;
+  transition: box-shadow var(--transition-normal);
+}
+
+.report-detail-summary:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.report-detail-summary h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 10px;
+  color: var(--text-primary);
+}
+
+.report-detail-summary p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+/* ▸ Export Actions ─────────────────────────────────── */
+.report-detail-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.report-export-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.report-export-btn.pdf {
+  background: #dc2626;
+  color: #fff;
+}
+
+.report-export-btn.pdf:hover:not(:disabled) {
+  background: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(220,38,38,0.3);
+}
+
+.report-export-btn.docx {
+  background: #2563eb;
+  color: #fff;
+}
+
+.report-export-btn.docx:hover:not(:disabled) {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+}
+
+.report-export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ▸ Sections ───────────────────────────────────────── */
+.report-detail-sections h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 16px;
+}
+
+.report-section-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 22px;
+  margin-bottom: 14px;
+  transition: box-shadow var(--transition-normal);
+}
+
+.report-section-card:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.report-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+}
+
+.report-section-content {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: "Cascadia Code", "Fira Code", monospace;
+  margin: 0;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.report-detail-empty {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-secondary);
+}
