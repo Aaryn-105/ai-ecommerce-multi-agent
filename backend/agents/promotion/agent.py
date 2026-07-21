@@ -12,6 +12,7 @@ Copy generation: uses LLM when ``OPENAI_API_KEY`` is set; template fallback othe
 Pure code (non-LLM) for all other calculations.
 """
 from __future__ import annotations
+import asyncio
 import time
 from typing import Any
 
@@ -145,17 +146,6 @@ class PromotionAgent(BaseAgent):
             discount_pct = round(discount_rate * 100)
             discount_label = f"{discount_pct}%折扣"
 
-            # Generate promotion copy (LLM → template fallback)
-            if llm_ok:
-                promo_copy = await self._llm_generate_copy(
-                    product, ptype, original_price, promo_price,
-                    discount_label, duration, campaign_name,
-                )
-            else:
-                promo_copy = template_promo_copy(
-                    ptype, product_title, discount_rate, promo_price, campaign_name,
-                )
-
             plans.append({
                 "promotion_type": ptype,
                 "campaign_name": campaign_name,
@@ -165,12 +155,43 @@ class PromotionAgent(BaseAgent):
                 "discount_rate": discount_rate,
                 "discount_label": discount_label,
                 "estimated_roi": roi,
-                "promotion_copy": promo_copy,
+                "promotion_copy": "",
                 "duration_days": duration,
                 "conditions": condition,
                 "match_score": match_score,
                 "match_reason": m["reason"],
             })
+
+        if llm_ok:
+            generated_copies = await asyncio.gather(
+                *(
+                    self._llm_generate_copy(
+                        product,
+                        plan["promotion_type"],
+                        original_price,
+                        plan["promotion_price"],
+                        plan["discount_label"],
+                        plan["duration_days"],
+                        plan["campaign_name"],
+                    )
+                    for plan in plans
+                ),
+                return_exceptions=True,
+            )
+        else:
+            generated_copies = [None] * len(plans)
+
+        for plan, generated_copy in zip(plans, generated_copies):
+            if isinstance(generated_copy, str) and generated_copy.strip():
+                plan["promotion_copy"] = generated_copy.strip()
+            else:
+                plan["promotion_copy"] = template_promo_copy(
+                    plan["promotion_type"],
+                    product_title,
+                    plan["discount_rate"],
+                    plan["promotion_price"],
+                    plan["campaign_name"],
+                )
 
         # ── Step 4: Score & rank by ROI ──────────────────
         plans.sort(key=lambda p: p["estimated_roi"], reverse=True)
@@ -199,6 +220,7 @@ class PromotionAgent(BaseAgent):
             "alternative_plans": alternatives,
             "all_matched_types": [m["promotion_type"] for m in matches],
             "llm_used": llm_ok,
+            "llm_calls": len(plans) if llm_ok else 0,
             "summary": summary,
         }
 
@@ -252,7 +274,7 @@ class PromotionAgent(BaseAgent):
             status = "completed"
             error = None
             llm_used = output.get("llm_used", False)
-            llm_calls = 1 if llm_used else 0
+            llm_calls = output.get("llm_calls", 0) if llm_used else 0
         except Exception as exc:
             output = {}
             status = "failed"

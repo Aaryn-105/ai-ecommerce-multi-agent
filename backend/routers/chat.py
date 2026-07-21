@@ -1,4 +1,4 @@
-"""Chat router — POST /api/v1/chat — orchestrates the full multi-agent pipeline."""
+﻿"""Chat router — POST /api/v1/chat — orchestrates the full multi-agent pipeline."""
 from __future__ import annotations
 
 import logging
@@ -14,10 +14,14 @@ from backend.core.deps import get_db_session
 from backend.models.schemas import ChatRequest, ChatResponse, AgentInput
 from backend.services.conversation import ConversationService
 from backend.services.fake_store import FakeStoreService
+from backend.services.report_polisher import ReportPolisher
+from backend.services.report import ReportService
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["chat"])
+
+_polisher = ReportPolisher()
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -30,14 +34,15 @@ async def chat(
     1. Save user message to conversation history.
     2. Run Intent Recognition — if not e-commerce, return early.
     3. Run Orchestrator — Plan → Execute → (Replan if needed).
-    4. Save assistant reply to conversation history.
-    5. Return structured response with plan steps and agent sections.
+    4. Use LLM to polish raw agent outputs into an enterprise-grade Markdown report.
+    5. Save assistant reply to conversation history.
+    6. Return structured response with plan steps and agent sections.
     """
     conv_svc = ConversationService(db)
     conv = conv_svc.get_or_create(body.conversation_id)
     conv_svc.add_message(conv, "user", body.message)
 
-    # ── Step 1: Intent Recognition ───────────────────────
+    # ── Step 1: Intent Recognition ─────────────────────────────────
     intent_agent = IntentRecognitionAgent()
     intent_input = AgentInput(
         task_id="intent_001",
@@ -45,6 +50,7 @@ async def chat(
         input_data={"message": body.message},
     )
     intent_result = await intent_agent.run(intent_input)
+    logger.error("DEBUG_CHAT body.message=%r intent_result=%r", body.message, intent_result.output_data)
 
     if not intent_result.output_data.get("is_ecommerce_query", False):
         reply = (
@@ -58,19 +64,15 @@ async def chat(
             conversation_id=conv.session_id,
         )
 
-    # ── Step 2: Orchestrate ──────────────────────────────
+    # ── Step 2: Orchestrate ─────────────────────────────────────────
     _ensure_agents_registered()
 
-    # Fetch real products from FakeStore
     fake_store = FakeStoreService()
     try:
         all_products = await fake_store.get_all_products()
     finally:
         await fake_store.close()
 
-    # The first agent (product_analysis) needs products either in
-    # input_data.products or context.all_products. We inject them
-    # into the orchestrator context so all agents can reference them.
     orch_context: dict[str, Any] = {"all_products": all_products}
 
     orchestrator = OrchestratorAgent()
@@ -80,8 +82,6 @@ async def chat(
         input_data={
             "message": body.message,
             "request_id": conv.session_id,
-            # Inject products as the first agent's input so the
-            # default plan's product_analysis step picks them up.
             "products": all_products,
         },
         context=orch_context,
@@ -89,31 +89,39 @@ async def chat(
     orch_result = await orchestrator.run(orch_input)
     orch_output = orch_result.output_data
 
-    # ── Step 3: Assemble reply ───────────────────────────
-    final_report = orch_output.get("final_report", {})
-    sections = final_report.get("sections", {})
-    plan_steps = orch_output.get("plan_steps", [])
+    final_report = orch_output.get("final_report", {}) or {}
+    sections = final_report.get("sections", {}) or {}
+    plan_steps = orch_output.get("plan_steps", []) or []
+    raw_summary = final_report.get("summary", "分析完成。")
+    failed_agents = final_report.get("failed_agents", []) or []
 
-    summary_parts = []
-    for agent_name, data in sections.items():
-        agent_summary = data.get("summary") or data.get("market_summary") or ""
-        if agent_summary:
-            summary_parts.append(f"**{agent_name}**: {agent_summary}")
-
-    report_summary = final_report.get("summary", "分析完成。")
-    reply = (
-        f"✅ 分析完成！\n\n"
-        f"{report_summary}\n\n"
-        + ("\n\n".join(summary_parts) if summary_parts else "")
+    # ── Step 3: Polish raw report into enterprise-grade Markdown ───
+    polished = await _polisher.polish(
+        user_query=body.message,
+        sections=sections,
+        raw_summary=raw_summary,
+        failed_agents=failed_agents,
     )
+    reply = polished["polished_report"]
+    executive_summary = polished["executive_summary"]
 
+    # ── Step 4: Save and return ─────────────────────────────────────
     conv_svc.add_message(conv, "assistant", reply)
+    ReportService(db).create_report(
+        conversation=conv,
+        user_query=body.message,
+        content=reply,
+        summary=executive_summary,
+        sections=sections,
+        plan=plan_steps,
+    )
 
     return ChatResponse(
         reply=reply,
         conversation_id=conv.session_id,
         plan=plan_steps,
         sections=sections,
+        executive_summary=executive_summary,
     )
 
 

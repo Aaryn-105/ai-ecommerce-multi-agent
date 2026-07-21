@@ -8,6 +8,8 @@ from typing import Any
 
 from backend.agents.base import BaseAgent
 from backend.agents.inventory.models import score_inventory
+from backend.services.analysis_insight import AnalysisInsightService
+from backend.services.llm_service import LLMService
 
 
 class InventoryAgent(BaseAgent):
@@ -26,8 +28,9 @@ class InventoryAgent(BaseAgent):
 
     agent_name = "inventory"
 
-    def __init__(self, top_n: int = 20) -> None:
+    def __init__(self, top_n: int = 20, llm_service: LLMService | None = None) -> None:
         self._top_n = top_n
+        self._insight = AnalysisInsightService(llm_service)
 
     async def execute(self, input_data: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
         candidate_products: list[dict[str, Any]] = (
@@ -104,7 +107,7 @@ class InventoryAgent(BaseAgent):
             f"\u5efa\u8bae\u8865\u8d27\u603b\u91d1\u989d${total_value:.2f}"
         )
 
-        return {
+        output = {
             "replenishment_plans": plans,
             "overall_summary": {
                 "urgent_count": urgent,
@@ -114,3 +117,27 @@ class InventoryAgent(BaseAgent):
             },
             "summary": summary,
         }
+        query = str(input_data.get("user_query") or context.get("user_query") or "")
+        urgent_plan = plans[0] if plans else {}
+        urgent_title = str(urgent_plan.get("title") or "暂无")
+        urgent_action = str(urgent_plan.get("suggested_action") or "暂无")
+        insight = await self._insight.generate(
+            agent_name=self.agent_name,
+            user_query=query,
+            evidence={
+                "overall_summary": output["overall_summary"],
+                "top_replenishment_plans": plans[:8],
+            },
+            fallback_insight=(
+                f"当前模型将{urgent}款商品列为紧急补货，最高优先级商品为{urgent_title}；"
+                "建议先核对真实库存和近30天订单，再按资金占用分批下单，避免仅依据评价数代理需求。"
+            ),
+            fallback_findings=[
+                f"共评估{len(scored_products)}款商品，紧急补货{urgent}款、常规维护{normal}款。",
+                f"模型建议补货总金额为${total_value:.2f}。",
+                f"最高优先级商品建议动作：{urgent_action}。",
+            ],
+            limitations=["当前库存与补货需求由评价数代理推导，不是仓储系统的实时库存和订单数据。"],
+        )
+        output.update(insight)
+        return output

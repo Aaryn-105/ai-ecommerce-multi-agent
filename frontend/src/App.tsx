@@ -9,6 +9,7 @@ import ProductBrowser from "./components/ProductBrowser";
 import "./components/ChatInterface.css";
 import "./App.css";
 import "./ReportList.css";
+import "./Dashboard.css";
 import "./ProductBrowser.css";
 
 

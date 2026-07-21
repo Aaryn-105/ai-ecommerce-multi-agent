@@ -1,4 +1,4 @@
-﻿# Python
+# Python
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -35,3 +35,29 @@ Thumbs.db
 
 # Docker
 docker-data/
+
+# Generated artifacts (code generation scripts)
+_b64_*
+_gen_*.py
+_temp_*
+_tp_*
+_write_*.py
+gen_*.py
+# Project scratch dirs (gitignored)
+tmp/
+logs/
+docs/figma-reference/*.tmp
+
+# Internal preview / debug artifacts from earlier work
+live_after_restart_render/
+professional_report_43_preview/
+tmp_clean_export/
+
+# Project scratch dirs (gitignored)
+tmp/
+logs/
+
+# Internal preview / debug artifacts from earlier work
+live_after_restart_render/
+professional_report_43_preview/
+tmp_clean_export/

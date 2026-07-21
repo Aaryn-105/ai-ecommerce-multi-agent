@@ -217,6 +217,39 @@ class TestPDFGeneration:
         assert pdf[:5] == b"%PDF-"
         assert len(pdf) > 500
 
+    def test_pdf_renders_full_markdown_report(self) -> None:
+        """Stored polished Markdown should be fully searchable in the PDF."""
+        fitz = pytest.importorskip("fitz")
+        content_md = """## 一、摘要与核心建议
+### 一句话结论
+电子产品类目存在明确选品机会。
+
+## 二、候选商品综合评估
+| 商品名称 | 综合得分 | 推荐等级 |
+|---|---:|---|
+| Silicon Power 256GB SSD | 80.85 | 强势推荐 |
+
+## 三、趋势预测与GMV估算
+- 30日销量预测为139件。
+
+## 四、风险矩阵与敏感性分析
+核心风险为库存不足与价格竞争。
+"""
+        svc = ReportExportService()
+        pdf = svc.to_pdf(
+            "电子产品选品分析",
+            "真实报告正文渲染测试",
+            {},
+            content_md=content_md,
+        )
+
+        document = fitz.open(stream=pdf, filetype="pdf")
+        extracted_text = "\n".join(page.get_text() for page in document)
+        assert "一、摘要与核心建议" in extracted_text
+        assert "Silicon Power 256GB SSD" in extracted_text
+        assert "三、趋势预测与GMV估算" in extracted_text
+        assert "四、风险矩阵与敏感性分析" in extracted_text
+
     @pytest.mark.asyncio
     async def test_pdf_with_real_agent_output(self, real_analysis_sections: dict[str, Any]) -> None:
         """Full sections from real agent outputs should produce a valid PDF."""

@@ -1,4 +1,4 @@
-"""OrchestratorAgent — Plan-and-Execute with replan loop."""
+﻿"""OrchestratorAgent 鈥?Plan-and-Execute with replan loop."""
 from __future__ import annotations
 
 import time
@@ -16,7 +16,7 @@ class OrchestratorAgent(BaseAgent):
 
     Flow::
 
-        Plan → Execute → (if any step failed) → Replan → Execute → Assemble Report
+        Plan 鈫?Execute 鈫?(if any step failed) 鈫?Replan 鈫?Execute 鈫?Assemble Report
     """
 
     agent_name = "orchestrator"
@@ -41,16 +41,18 @@ class OrchestratorAgent(BaseAgent):
         attempt = 0
         shared_context: dict[str, Any] = dict(context or {})
 
-        # ── Plan ─────────────────────────────────────────
+        # 鈹€鈹€ Plan 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
         plan_steps = await self._planner.plan(query)
+        for step in plan_steps:
+            step.params.setdefault("user_query", query)
 
         while attempt < max_attempts:
             attempt += 1
 
-            # ── Execute ──────────────────────────────────
+            # 鈹€鈹€ Execute 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
             shared_context = await self._executor.run(plan_steps, shared_context)
 
-            # ── Check for failures ───────────────────────
+            # 鈹€鈹€ Check for failures 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
             failed = [
                 agent
                 for agent in (s.agent for s in plan_steps)
@@ -60,21 +62,25 @@ class OrchestratorAgent(BaseAgent):
             if not failed:
                 break
 
-            # ── Replan ───────────────────────────────────
+            # 鈹€鈹€ Replan 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
             if attempt < max_attempts:
                 plan_steps = await self._replanner.replan(query, plan_steps, shared_context)
+                for step in plan_steps:
+                    step.params.setdefault("user_query", query)
                 if not plan_steps:
                     break
 
-        # ── Assemble report ──────────────────────────────
+        # 鈹€鈹€ Assemble report 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
         sections = {}
-        for step in plan_steps if not failed else []:
+        for step in plan_steps:
+            if not step.report:
+                continue
             data = shared_context.get(step.agent, {})
             if isinstance(data, dict) and "output_data" in data:
                 sections[step.agent] = data["output_data"]
 
         final_report = {
-            "summary": f"Executed {len(sections)} agents across {attempt} attempt(s).",
+            "summary": f"已完成{len(sections)}个智能体模块分析，共执行{attempt}轮。",
             "sections": sections,
             "total_agents_run": len(sections),
             "attempts": attempt,
@@ -113,3 +119,4 @@ class OrchestratorAgent(BaseAgent):
             ),
             error=error,
         )
+

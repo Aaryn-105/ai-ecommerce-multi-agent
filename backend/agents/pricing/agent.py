@@ -8,6 +8,8 @@ from typing import Any
 
 from backend.agents.base import BaseAgent
 from backend.agents.pricing.models import compute_suggested_price
+from backend.services.analysis_insight import AnalysisInsightService
+from backend.services.llm_service import LLMService
 
 
 class PricingAgent(BaseAgent):
@@ -27,8 +29,9 @@ class PricingAgent(BaseAgent):
 
     agent_name = "pricing"
 
-    def __init__(self, margin: float = 0.25) -> None:
+    def __init__(self, margin: float = 0.25, llm_service: LLMService | None = None) -> None:
         self._margin = margin
+        self._insight = AnalysisInsightService(llm_service)
 
     async def execute(self, input_data: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
         # Accept target_product from input_data or context pipeline
@@ -123,7 +126,32 @@ class PricingAgent(BaseAgent):
             f"\u7b56\u7565\u5206\u5e03\uff1a{strategy_desc}"
         )
 
-        return {
+        output = {
             "pricing_results": results,
             "summary": summary,
         }
+        query = str(input_data.get("user_query") or context.get("user_query") or "")
+        top_result = results[0] if results else {}
+        top_title = str(top_result.get("title") or "重点商品")
+        top_price = top_result.get("suggested_price", 0)
+        top_change = top_result.get("price_change", 0)
+        insight = await self._insight.generate(
+            agent_name=self.agent_name,
+            user_query=query,
+            evidence={
+                "pricing_results": results[:8],
+                "strategy_distribution": strategies,
+            },
+            fallback_insight=(
+                f'{top_title}建议价格为{top_price}，当前价格变化{top_change}%；'
+                '建议先以小流量测试价格弹性，再根据转化率、毛利和竞品价格分位做二次调整。'
+            ),
+            fallback_findings=[
+                f'本次完成{len(results)}款商品的三因子定价分析。',
+                f'策略分布：{strategy_desc}。',
+                f'首个重点商品建议价为{top_price}。',
+            ],
+            limitations=['模型缺少成本、毛利、广告费和真实转化率，建议价不能直接视为最终财务定价。'],
+        )
+        output.update(insight)
+        return output

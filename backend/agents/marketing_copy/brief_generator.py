@@ -1,4 +1,4 @@
-"""Generate marketing brief — extract selling points, set tone, and determine price strategy."""
+﻿"""Generate marketing brief — extract selling points, set tone, and determine price strategy."""
 from __future__ import annotations
 
 from typing import Any
@@ -51,44 +51,112 @@ def determine_price_strategy(
     return PRICE_STRATEGIES["competitive"]
 
 
+def _extract_distinctive_keywords(title: str, description: str, max_kw: int = 6) -> list[str]:
+    """从商品标题/描述中提取能体现商品特色的关键词。"""
+    import re
+    text = f"{title} {description or ''}".lower()
+    # 常见停用词
+    stop = {
+        "the","a","an","and","or","but","of","for","to","in","on","at","by","with",
+        "is","are","was","were","be","been","being","have","has","had","do","does",
+        "did","will","would","should","can","could","may","might","must",
+        "this","that","these","those","i","you","he","she","it","we","they",
+        "as","if","than","then","so","such","no","not","only","very","more","most",
+        "from","your","our","their","its","his","her","about","into","over","after",
+        "before","up","down","out","off","just","also","any","all","some","one","two",
+        "new","good","great","perfect","best","high","low","small","large","big",
+        "适合","这件","我们","您","的","了","是","在","和","与","或","也","就","都",
+    }
+    tokens = re.findall(r"[a-zA-Z\u4e00-\u9fff]+", text)
+    seen: set[str] = set()
+    keywords: list[str] = []
+    for tok in tokens:
+        if tok in stop or len(tok) < 2:
+            continue
+        if tok in seen:
+            continue
+        seen.add(tok)
+        keywords.append(tok)
+        if len(keywords) >= max_kw:
+            break
+    return keywords
+
+
+def _build_core_selling_point(product: dict[str, Any]) -> str:
+    """基于商品真实数据构建差异化核心卖点（不再使用占位符）。"""
+    title = (product.get("title") or "").strip()
+    description = (product.get("description") or "").strip()
+    rating_obj = product.get("rating") or {}
+    rate = rating_obj.get("rate", 0)
+    count = rating_obj.get("count", 0)
+
+    # 1) 从 description 抓取第一条关键事实
+    if description:
+        first_sentence = description.replace("\n", " ").split(".")[0].strip()
+        if first_sentence and len(first_sentence) >= 8:
+            if len(first_sentence) > 80:
+                first_sentence = first_sentence[:80].rstrip() + "…"
+            return first_sentence
+
+    # 2) 退而求其次，用标题 + 评分
+    if rate and count:
+        return f"{title}：评分 {rate}/5，基于{count}条真实用户评价"
+    if title:
+        return title
+    return "优质商品"
+
+
 def extract_selling_points(product: dict[str, Any]) -> list[str]:
-    """Extract key selling points from product data."""
+    """从商品真实数据提取可验证的卖点。"""
     points: list[str] = []
-    title = product.get("title", "")
-    category = product.get("category", "")
+    title = (product.get("title") or "").strip()
+    category = (product.get("category") or "").strip()
     price = product.get("price", 0)
-    rating = product.get("rating", {})
+    rating = product.get("rating") or {}
     rate = rating.get("rate", 0)
     count = rating.get("count", 0)
-    desc = product.get("description", "")
+    description = (product.get("description") or "").strip()
 
-    # Point 1: Category + rating
-    if rate >= 4.0:
-        points.append(f"高分{category}商品（{rate}/5），{count}条用户评价")
-    elif rate >= 3.0:
-        points.append(f"{category}商品，{count}条用户评价")
-    else:
-        points.append(f"{category}商品，亲民定位")
+    # Point 1: 用户评分事实
+    if rate and count:
+        if rate >= 4.5:
+            points.append(f"{rate}/5高分商品，已有{count}位用户验证口碑")
+        elif rate >= 4.0:
+            points.append(f"评分 {rate}/5，{count}条评价好评为主")
+        elif rate >= 3.0:
+            points.append(f"评分 {rate}/5，仍有提升空间")
+        else:
+            points.append(f"评分 {rate}/5，定位亲民")
+    elif rate:
+        points.append(f"评分 {rate}/5")
 
-    # Point 2: Price-based
-    if price < 30:
-        points.append(f"超值价格仅，入门首选")
-    elif price <= 100:
-        points.append(f"合理定价，品质之选")
-    else:
-        points.append(f"高端定位，投资级好物")
+    # Point 2: 价格事实
+    if price:
+        if price < 30:
+            points.append(f"售价仅 ${price:.2f}，入门门槛低")
+        elif price <= 100:
+            points.append(f"定价 ${price:.2f}，处于主流消费区间")
+        else:
+            points.append(f"定价 ${price:.2f}，定位偏中高端")
 
-    # Point 3: Description length as detail indicator
-    if desc and len(desc) > 200:
-        points.append("详细规格说明，购买决策信息透明")
+    # Point 3: 描述中的差异化事实
+    if description and len(description) > 50:
+        # 提取描述中最长的可读短语作为差异化信息
+        kws = _extract_distinctive_keywords(title, description, max_kw=4)
+        if kws:
+            points.append("产品关键词：" + "、".join(kws[:4]))
 
-    # Point 4: Title-derived keyword
-    keywords = [w for w in title.lower().split() if len(w) > 4]
-    if keywords:
-        top_kw = max(keywords, key=len)
-        points.append(f"主打关键词：{top_kw}")
+    # Point 4: 类目说明
+    if category:
+        points.append(f"所属类目：{category}")
 
-    return points
+    # Point 5: 标题关键词
+    if title:
+        words = [w for w in title.split() if len(w) >= 3][:3]
+        if words:
+            points.append("标题强调：" + " ".join(words))
+
+    return points[:5]
 
 
 def build_marketing_brief(product: dict[str, Any], position: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -115,16 +183,19 @@ def build_marketing_brief(product: dict[str, Any], position: dict[str, Any] | No
 
     selling_points = extract_selling_points(product)
 
-    # Add competitor insights
+    # Add competitor insights if available
     advantages = position.get("advantages", []) if position else []
     if advantages:
-        selling_points.extend(advantages[:2])
+        selling_points = list(advantages[:2]) + selling_points
+        selling_points = selling_points[:5]
 
-    # Core selling point
+    # Core selling point — NEVER use placeholder text
+    core = _build_core_selling_point(product)
     if advantages:
-        core = advantages[0]
-    else:
-        core = f"{category}优选，起"
+        # Prefer first concrete advantage if it is non-trivial
+        first_adv = advantages[0]
+        if first_adv and len(first_adv) >= 6 and "建议" not in first_adv[:4]:
+            core = f"{first_adv}（{core[:60]}）"
 
     return {
         "tone": tone,

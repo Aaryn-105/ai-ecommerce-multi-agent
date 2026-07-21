@@ -11,62 +11,30 @@ Source code lives under two top-level directories:
 
 Each agent directory under `backend/agents/` is self-contained: `agent.py` (entry point), plus supporting modules (`scorer.py`, `models.py`, `llm_prompts.py`, etc.) as needed. The orchestrator agent at `backend/agents/orchestrator/` owns the LangGraph workflow definition and Plan-and-Execute logic.
 
-## Build, Test, and Development Commands
+### Top-level layout
 
-| Command | Purpose |
-|---------|---------|
-| `python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000` | Start the FastAPI dev server with hot reload |
-| `cd frontend && pnpm dev` | Start the Vite frontend dev server |
-| `pip install -r requirements.txt` | Install Python dependencies |
-| `cd frontend && pnpm install` | Install frontend dependencies |
-| `python -c "from backend.core.database import init_db; init_db()"` | Create/initialize SQLite tables |
+| Directory | Purpose |
+|-----------|---------|
+| `backend/` | FastAPI app, agents, routers, services, models, core |
+| `frontend/` | React/Vite app (UI, API client, components) |
+| `data/` | SQLite database files (gitignored) |
+| `tests/` | Pytest suite (see below) |
+| `tests/agents/` | Unit tests for each agent (one subdir per agent) |
+| `tests/services/` | Unit tests for shared services (export, polisher, etc.) |
+| `tests/integration/` | End-to-end phase tests (`test_phase1.py` … `test_phase5_*.py`) |
+| `tests/manual/` | One-off probes and audit scripts (run manually, not via pytest) |
+| `docs/` | Architecture notes, figma references, sample reports |
+| `docs/figma-reference/` | Figma design screenshots used during UI work |
+| `docs/reference-reports/` | Sample PDFs cited as quality benchmarks |
+| `scripts/maintenance/` | One-off helper scripts (PDF/PNG conversion, fixes) |
+| `tmp/preview/` | Rendered report pages (gitignored) |
+| `tmp/responses/` | Captured LLM response JSON (gitignored) |
+| `logs/` | Server and frontend logs |
+| `AGENTS.md` | This contributor guide |
+| `README.md` | User-facing project overview and run instructions |
 
-## Coding Style & Naming Conventions
+The tests directory follows three layers: **unit** tests live under `tests/agents/` and `tests/services/`, **integration** scripts go to `tests/integration/`, and **manual probes** that should never be invoked by CI go to `tests/manual/`.
 
-- **Python**: Follow PEP 8. Indent with 4 spaces. Use `snake_case` for functions and variables, `PascalCase` for classes and Pydantic models.
-- **TypeScript**: Use 2-space indentation. Prefer `camelCase` for variables and functions, `PascalCase` for components and types.
-- **Agent files**: Name the main agent entry `agent.py` and supporting modules by concern (`scorer.py`, `models.py`, `llm_prompts.py`, `validator.py`).
-- **Imports**: Use absolute imports within `backend/` (e.g. `from backend.models.schemas import AgentInput`). Keep standard library, third-party, and local imports grouped.
-- **Docstrings**: Every agent class must have a class-level docstring describing its responsibility and input/output shapes.
-
-The project does not use an automated formatter by default. Keep diffs clean by not mixing formatting changes with logic changes.
-
-## Testing Guidelines
-
-- **Framework**: `pytest` for all Python tests, located alongside the module under test (e.g. `tests/agents/test_product_analysis.py`).
-- **Naming**: Test files prefixed with `test_`. Test functions named `test_<unit>_<scenario>` (e.g. `test_scorer_handles_single_product`).
-- **Coverage**: All scoring functions and edge cases (empty input, uniform values, single-product categories) must have tests. Agent integration tests that verify `AgentInput` → `AgentResult` shape are strongly encouraged.
-- **Running**: `pytest tests/ -v` from the project root.
-
-## Commit & Pull Request Guidelines
-
-**Commit messages** follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-feat(product-analysis): add 4-dimension Min-Max scorer
-fix(orchestrator): handle empty plan from LLM fallback
-chore(deps): pin langgraph to ^0.2.0
-```
-
-Allowed scopes: `intent`, `orchestrator`, `product-analysis`, `trend-forecast`, `competitor-analysis`, `marketing-copy`, `inventory`, `pricing`, `promotion`, `export`, `frontend`, `deps`, `docs`.
-
-**Pull requests** must include:
-
-- A description of what the PR changes and why.
-- A link to the related issue (if applicable).
-- Screenshots for frontend changes.
-- A note on whether the change affects any agent's input/output schema.
-
-## Architecture Overview
-
-The system uses a **Plan-and-Execute** orchestration pattern via LangGraph. User input flows through:
-
-1. **Intent Recognition** (rules + LLM fallback) — classifies the query as e-commerce or not.
-2. **Orchestrator** (LLM Plan + code executor) — generates a DAG of agent steps, executes them in topological order, and replans on failure.
-3. **7 domain agents** — product analysis, trend forecast, competitor analysis, marketing copy, inventory, pricing, and promotion. Each reads inputs from the shared context and writes results back.
-4. **Report assembly** — the orchestrator collects all agent outputs into a structured report.
-
-Agents never communicate directly. All inter-agent data flows through the orchestrator's `context` dictionary. Agents that are "pure code" (product analysis, competitor analysis, inventory, pricing, trend forecast) produce deterministic, reproducible results with zero LLM calls.
 
 ## Agent-Specific Instructions
 

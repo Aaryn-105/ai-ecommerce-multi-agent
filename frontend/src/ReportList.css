@@ -1,4 +1,4 @@
-﻿/* ── Report List & Detail ──────────────────────────── */
+/* ── Report List & Detail ──────────────────────────── */
 .report-list-page,
 .report-detail-page {
   max-width: 1000px;
@@ -341,4 +341,188 @@
   text-align: center;
   padding: 40px;
   color: var(--text-secondary);
+}
+
+.report-markdown-content {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px 28px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+.report-markdown-content h1,
+.report-markdown-content h2,
+.report-markdown-content h3 {
+  color: var(--text-primary);
+  margin: 18px 0 10px;
+}
+
+.report-markdown-content h1:first-child,
+.report-markdown-content h2:first-child {
+  margin-top: 0;
+}
+
+.report-markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 13px;
+}
+
+.report-markdown-content th,
+.report-markdown-content td {
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.report-markdown-content th {
+  color: var(--text-primary);
+  background: var(--surface-soft, rgba(0, 0, 0, 0.03));
+}
+
+.report-markdown-content li {
+  margin: 4px 0;
+}
+
+/* -- Delete action + confirmation modal -- */
+.col-actions {
+  width: 110px;
+  text-align: right;
+  padding-right: 16px !important;
+}
+
+.report-row-delete-btn {
+  background: transparent;
+  color: var(--danger, #d9534f);
+  border: 1px solid var(--danger, #d9534f);
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.report-row-delete-btn:hover {
+  background: var(--danger, #d9534f);
+  color: #fff;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal-dialog {
+  background: var(--surface, #fff);
+  border-radius: 10px;
+  padding: 24px 28px;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+.modal-title {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.modal-body {
+  margin: 0 0 20px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  word-break: break-word;
+}
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.modal-btn {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.modal-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.modal-btn-cancel {
+  background: transparent;
+  color: var(--text-primary);
+}
+.modal-btn-cancel:hover {
+  background: var(--surface-soft, rgba(0, 0, 0, 0.05));
+}
+.modal-btn-danger {
+  background: var(--danger, #d9534f);
+  color: #fff;
+  border-color: var(--danger, #d9534f);
+}
+.modal-btn-danger:hover {
+  background: #b94440;
+  border-color: #b94440;
+}
+
+/* ▸ Batch ─────────────────────────────────────── */
+.report-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.batch-delete-btn {
+  background: var(--danger, #d9534f);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal, 0.2s);
+}
+
+.batch-delete-btn:hover:not(:disabled) {
+  background: #b94440;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(185,68,64,0.3);
+}
+
+.batch-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ▸ Checkbox Column ───────────────────────────── */
+.col-check {
+  width: 40px;
+  text-align: center;
+  padding: 14px 8px !important;
+}
+
+.report-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--sidebar-active, #0f3460);
+}
+
+/* ▸ Selected Row ──────────────────────────────── */
+.report-row.selected {
+  background: #eef2ff !important;
+}
+
+.report-row.selected:hover {
+  background: #e4e9ff !important;
 }

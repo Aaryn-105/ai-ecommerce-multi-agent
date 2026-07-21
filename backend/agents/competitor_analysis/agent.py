@@ -8,12 +8,14 @@ from __future__ import annotations
 from typing import Any
 
 from backend.agents.base import BaseAgent
+from backend.services.analysis_insight import AnalysisInsightService
 from backend.agents.competitor_analysis.scorer import (
     build_category_benchmark,
     compute_category_extrema,
     generate_insights,
     score_product_competitive,
 )
+from backend.services.llm_service import LLMService
 
 
 class CompetitorAnalysisAgent(BaseAgent):
@@ -27,15 +29,19 @@ class CompetitorAnalysisAgent(BaseAgent):
             → Step 3: generate insights (advantages / disadvantages / differentiators)
             → Step 4: format output with market summary
 
-    Pure code — zero LLM calls.
+    Deterministic benchmarking is preserved; an optional LLM adds evidence-bound insight.
     """
 
     agent_name = "competitor_analysis"
+
+    def __init__(self, llm_service: LLMService | None = None) -> None:
+        self._insight = AnalysisInsightService(llm_service)
 
     async def execute(self, input_data: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
         # Accept data from input_data or context (orchestrator pipeline)
         all_products: list[dict[str, Any]] = (
             input_data.get("all_products")
+            or context.get("all_products")
             or (context.get("product_analysis", {}).get("output_data", {}).get("all_products"))
             or []
         )
@@ -46,6 +52,24 @@ class CompetitorAnalysisAgent(BaseAgent):
             or []
         )
 
+        category_filter = input_data.get("category")
+        if category_filter:
+            allowed_categories = (
+                {category_filter}
+                if isinstance(category_filter, str)
+                else set(category_filter)
+            )
+            all_products = [
+                product
+                for product in all_products
+                if product.get("category") in allowed_categories
+            ]
+            selected_products = [
+                product
+                for product in selected_products
+                if product.get("category") in allowed_categories
+            ]
+
         if not all_products:
             # Fallback: use selected_products as all_products
             all_products = selected_products
@@ -53,7 +77,12 @@ class CompetitorAnalysisAgent(BaseAgent):
                 return {
                     "category_benchmarks": {},
                     "product_positioning": [],
-                    "market_summary": "没有可用的商品数据进行分析。",
+                    "analysis_scope": {
+                        "category": category_filter or "全部商品",
+                        "matched_count": 0,
+                        "data_source": "FakeStore API",
+                    },
+                    "market_summary": f"真实数据中未找到{category_filter or '目标'}类目商品，无法进行竞品对比。",
                 }
 
         # ── Step 1: Group by category & compute benchmarks ──
@@ -169,8 +198,37 @@ class CompetitorAnalysisAgent(BaseAgent):
             f"其中竞争力较强（≥70分）{strong_count}款，竞争力偏弱（<40分）{weak_count}款。"
         )
 
-        return {
+        output = {
             "category_benchmarks": category_benchmarks,
             "product_positioning": product_positioning,
+            "analysis_scope": {
+                "category": category_filter or "全部商品",
+                "matched_count": total_products,
+                "data_source": "FakeStore API",
+            },
             "market_summary": market_summary,
         }
+        query = str(input_data.get("user_query") or context.get("user_query") or "")
+        top_position = product_positioning[0] if product_positioning else {}
+        insight = await self._insight.generate(
+            agent_name=self.agent_name,
+            user_query=query,
+            evidence={
+                "analysis_scope": output["analysis_scope"],
+                "category_benchmarks": category_benchmarks,
+                "top_positions": product_positioning[:6],
+            },
+            fallback_insight=(
+                f"{top_position.get('title', '重点商品')}的竞争力评分为{top_position.get('competitive_score', 0)}分，"
+                f"价格定位为{top_position.get('price_label', '未知')}；建议围绕评分优势建立差异化卖点，"
+                "并用竞品价格分位验证用户对溢价的接受度。"
+            ),
+            fallback_findings=[
+                f"本次覆盖{total_products}款商品，重点商品竞争力均值{avg_comp}分。",
+                f"竞争力较强商品{strong_count}款，偏弱商品{weak_count}款。",
+                f"目标类目基准覆盖：{'、'.join(cat_names) or '暂无'}。",
+            ],
+            limitations=["竞品基准来自FakeStore公开商品目录，不代表完整市场份额或实时竞品价格。"],
+        )
+        output.update(insight)
+        return output

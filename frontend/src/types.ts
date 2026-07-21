@@ -1,4 +1,4 @@
-﻿/** Shared TypeScript types matching backend Pydantic schemas. */
+/** Shared TypeScript types matching backend Pydantic schemas. */
 
 // ── Chat ────────────────────────────────────────────────
 
@@ -87,6 +87,8 @@ export interface ReportDetail {
   title: string;
   summary: string | null;
   sections: Record<string, unknown>;
+  content?: string;
+  user_query?: string;
   created_at: string | null;
   updated_at: string | null;
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
 import { getReport, exportReport } from "../api";
 import type { ReportDetail as ReportDetailType } from "../types";
 
@@ -109,7 +110,14 @@ export default function ReportDetail() {
         <button className="report-export-btn pdf" onClick={() => handleExport("pdf")} disabled={exporting !== null}>{exporting === "pdf" ? TXT_EXPORTING : TXT_EXPORT_PDF}</button>
         <button className="report-export-btn docx" onClick={() => handleExport("docx")} disabled={exporting !== null}>{exporting === "docx" ? TXT_EXPORTING : TXT_EXPORT_DOCX}</button>
       </div>
-      <div className="report-detail-sections"><h3>{TXT_SECTIONS}</h3>{renderSections(report.sections)}</div>
+      <div className="report-detail-sections">
+        <h3>{TXT_SECTIONS}</h3>
+        {report.content ? (
+          <article className="report-markdown-content">
+            <ReactMarkdown>{report.content}</ReactMarkdown>
+          </article>
+        ) : renderSections(report.sections)}
+      </div>
     </div>
   );
 }

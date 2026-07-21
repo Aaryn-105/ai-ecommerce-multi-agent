@@ -38,10 +38,13 @@ class BaseAgent(ABC):
         """
         start = time.perf_counter()
         llm_used = False
+        llm_calls = 0
         error: str | None = None
 
         try:
             output_data = await self.execute(agent_input.input_data, agent_input.context)
+            llm_used = bool(output_data.get("llm_used", False))
+            llm_calls = int(output_data.get("llm_calls", 0)) if llm_used else 0
             status = "completed"
         except Exception as exc:
             output_data = {}
@@ -57,7 +60,7 @@ class BaseAgent(ABC):
             execution_meta=ExecutionMeta(
                 execution_time_ms=round(elapsed_ms, 2),
                 llm_used=llm_used,
-                llm_calls=0,
+                llm_calls=llm_calls,
             ),
             error=error,
         )

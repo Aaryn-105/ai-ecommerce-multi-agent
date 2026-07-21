@@ -8,8 +8,10 @@ from __future__ import annotations
 from typing import Any
 
 from backend.agents.base import BaseAgent
+from backend.services.analysis_insight import AnalysisInsightService
 from backend.agents.trend_forecast.moving_average import forecast_range
 from backend.services.data_generator import generate_sales_history
+from backend.services.llm_service import LLMService
 
 
 class TrendForecastAgent(BaseAgent):
@@ -22,7 +24,7 @@ class TrendForecastAgent(BaseAgent):
                  → Step 3: forecast 7d / 30d
                  → Step 4: rank by growth & volatility, format output
 
-    Pure code — zero LLM calls.
+    Deterministic forecasting is preserved; an optional LLM adds evidence-bound insight.
     """
 
     agent_name = "trend_forecast"
@@ -32,10 +34,12 @@ class TrendForecastAgent(BaseAgent):
         forecast_days: int = 30,
         sma_window: int = 7,
         top_n: int = 10,
+        llm_service: LLMService | None = None,
     ) -> None:
         self._forecast_days = forecast_days
         self._sma_window = sma_window
         self._top_n = top_n
+        self._insight = AnalysisInsightService(llm_service)
 
     async def execute(self, input_data: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
         # Accept products from input_data or context
@@ -48,7 +52,12 @@ class TrendForecastAgent(BaseAgent):
         if not raw_products:
             return {
                 "product_forecasts": [],
-                "summary": "No products to forecast.",
+                "analysis_scope": {
+                    "category": input_data.get("category") or "全部商品",
+                    "matched_count": 0,
+                    "data_source": "FakeStore API + 本地模拟销量历史",
+                },
+                "summary": f"真实数据中未找到{input_data.get('category') or '目标'}类目商品，无法进行趋势预测。",
                 "high_growth_count": 0,
                 "declining_count": 0,
             }
@@ -61,7 +70,7 @@ class TrendForecastAgent(BaseAgent):
             title = p.get("title", "Unknown")
             category = p.get("category", "")
             price = p.get("price", 0.0)
-            rating = p.get("rating", {}) or {}
+            rating = p.get("rating") or p.get("original_rating") or {}
             rating_count = rating.get("count", 0)
 
             # Generate 90 days of sales history
@@ -132,13 +141,54 @@ class TrendForecastAgent(BaseAgent):
             f"前{self._top_n}款产品已详细输出趋势预测。"
         )
 
-        return {
+        output = {
             "product_forecasts": top_forecasts,
+            "analysis_scope": {
+                "category": input_data.get("category") or "全部商品",
+                "matched_count": len(product_forecasts),
+                "data_source": "FakeStore API + 本地模拟销量历史",
+            },
             "all_count": len(product_forecasts),
             "high_growth_count": high_growth,
             "declining_count": declining,
             "summary": summary,
         }
+        query = str(input_data.get("user_query") or context.get("user_query") or "")
+        top_forecast = top_forecasts[0] if top_forecasts else {}
+        insight = await self._insight.generate(
+            agent_name=self.agent_name,
+            user_query=query,
+            evidence={
+                "analysis_scope": output["analysis_scope"],
+                "high_growth_count": high_growth,
+                "declining_count": declining,
+                "top_forecasts": [
+                    {
+                        "title": forecast["title"],
+                        "avg_sales_30d": forecast["avg_sales_30d"],
+                        "forecast_7d_total": round(sum(forecast["forecast_7d"]), 1),
+                        "forecast_30d_total": round(sum(forecast["forecast_30d"]), 1),
+                        "trend_rate": forecast["trend_rate"],
+                        "volatility": forecast["volatility"],
+                        "growth_signal": forecast["growth_signal"],
+                    }
+                    for forecast in top_forecasts[:5]
+                ],
+            },
+            fallback_insight=(
+                f"模型估算显示，{top_forecast.get('title', '重点商品')}的趋势斜率为"
+                f"{top_forecast.get('trend_rate', 0)}，信号为{top_forecast.get('growth_signal', '未知')}。"
+                "该结果适合用于排序和备货预案，不应替代真实订单时间序列。"
+            ),
+            fallback_findings=[
+                f"覆盖{len(product_forecasts)}款商品，其中高增长{high_growth}款、下降{declining}款。",
+                f"重点商品未来7天模型估算销量为{round(sum(top_forecast.get('forecast_7d', [])), 1)}件。",
+                f"重点商品未来30天模型估算销量为{round(sum(top_forecast.get('forecast_30d', [])), 1)}件。",
+            ],
+            limitations=["FakeStore API不提供历史销量；当前时间序列由评价数代理生成，仅用于模型演示。"],
+        )
+        output.update(insight)
+        return output
 
     @staticmethod
     def _classify_growth(trend_rate: float) -> str:

@@ -1,4 +1,4 @@
-﻿/** Axios API client with all backend endpoint methods. */
+/** Axios API client with all backend endpoint methods. */
 import axios from "axios";
 import type {
   ChatRequest,
@@ -15,7 +15,7 @@ import type {
 
 const http = axios.create({
   baseURL: "/api/v1",
-  timeout: 60000,
+  timeout: 180000,
   headers: { "Content-Type": "application/json" },
 });
 
@@ -83,6 +83,18 @@ export async function getReport(id: number): Promise<ReportDetail> {
   return resp.data;
 }
 
+export async function deleteReport(id: number): Promise<{ deleted: boolean; id: number }> {
+  const resp = await http.delete<{ deleted: boolean; id: number }>(`/report/${id}`);
+  return resp.data;
+}
+
+
+export async function batchDeleteReports(ids: number[]): Promise<{ deleted: boolean; ids: number[]; count: number }> {
+  const resp = await http.post<{ deleted: boolean; ids: number[]; count: number }>("/report/batch-delete", { ids });
+  return resp.data;
+}
+
+
 export async function exportReport(
   reportId: number,
   format: "pdf" | "docx",
@@ -102,3 +114,4 @@ export async function healthCheck(): Promise<{ status: string; version: string }
   const resp = await http.get<{ status: string; version: string }>("/../health");
   return resp.data;
 }
+

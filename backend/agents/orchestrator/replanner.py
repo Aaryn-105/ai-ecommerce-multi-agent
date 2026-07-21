@@ -1,19 +1,20 @@
-"""Replanning logic — invoked when one or more steps fail."""
+"""Replanning logic — invoked when one or more steps fail.
+
+Strategy (in order):
+1. LLM analyses the error and suggests replacement steps.
+2. Rule-based fallback: drop failed step and all its dependents.
+"""
 from __future__ import annotations
 
 from typing import Any
 
+from backend.agents.registry import AgentRegistry
 from backend.models.schemas import PlanStep
 from backend.services.llm_service import LLMService
 
 
 class Replanner:
-    """Attempts to recover from step failures.
-
-    Strategy (in order):
-    1. LLM analyses the error and suggests replacement steps.
-    2. Rule-based fallback: drop failed step and all its dependents.
-    """
+    """Attempts to recover from step failures."""
 
     def __init__(self, llm_service: LLMService | None = None) -> None:
         self._llm = llm_service or LLMService()
@@ -24,8 +25,7 @@ class Replanner:
         original_plan: list[PlanStep],
         context: dict[str, Any],
     ) -> list[PlanStep]:
-        """Return a revised list of PlanSteps, or an empty list if no recovery is possible."""
-        # Collect failed steps
+        """Return a revised list of PlanSteps, or empty list if no recovery is possible."""
         failed_agents = [
             agent for agent in original_plan
             if isinstance(context.get(agent.agent), dict)
@@ -34,7 +34,7 @@ class Replanner:
         if not failed_agents:
             return []
 
-        # ── Try LLM replan ──────────────────────────────
+        # \u2500\u2500 Try LLM replan (with strict agent-name validation) \u2500\u2500\u2500
         prompt = (
             f"The following agents failed: {[f.agent for f in failed_agents]}. "
             f"Original plan: {[s.agent for s in original_plan]}. "
@@ -48,11 +48,15 @@ class Replanner:
         )
         if isinstance(llm_result, list) and len(llm_result) > 0:
             try:
-                return [PlanStep.model_validate(s) for s in llm_result]
+                candidates = [PlanStep.model_validate(s) for s in llm_result]
+                registered = set(AgentRegistry.list_agents())
+                valid = [c for c in candidates if c.agent in registered]
+                if valid:
+                    return valid
             except Exception:
                 pass
 
-        # ── Rule fallback: drop failed and dependents ────
+        # \u2500\u2500 Rule fallback: drop failed and dependents \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
         return self._drop_failed_and_dependents(original_plan, failed_agents)
 
     @staticmethod
@@ -63,7 +67,6 @@ class Replanner:
         """Remove failed steps and any step that transitively depends on them."""
         failed_names = {f.agent for f in failed_agents}
         removed = set(failed_names)
-        # Find all transitive dependents
         changed = True
         while changed:
             changed = False

@@ -19,6 +19,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     reply: str
     conversation_id: str
+    executive_summary: str = ''
     plan: list[dict[str, Any]] = []
     sections: dict[str, Any] = {}
 
@@ -80,6 +81,7 @@ class PlanStep(BaseModel):
     params: dict[str, Any] = {}
     depends_on: list[str] = []
     description: str = ""
+    report: bool = True
 
 
 # ═══════════════════════════════════════════════════════════

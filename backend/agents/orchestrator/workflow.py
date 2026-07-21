@@ -86,8 +86,15 @@ async def node_assemble(state: WorkflowState) -> dict[str, Any]:
     """Assemble the final report from context."""
     context = state.get("context", {})
     sections = {}
+    visible_agents: set[str] = set()
+    for step in state.get("plan_steps", []):
+        if isinstance(step, dict):
+            if step.get("report", True) and step.get("agent"):
+                visible_agents.add(step["agent"])
+        elif step.report:
+            visible_agents.add(step.agent)
     for key, value in context.items():
-        if isinstance(value, dict) and "output_data" in value:
+        if key in visible_agents and isinstance(value, dict) and "output_data" in value:
             sections[key] = value["output_data"]
 
     summary_parts = []

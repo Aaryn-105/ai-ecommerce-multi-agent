@@ -1,4 +1,4 @@
-﻿/** Sidebar navigation component. */
+/** Sidebar navigation component. */
 import { NavLink } from "react-router-dom";
 
 const NAV_ITEMS = [
